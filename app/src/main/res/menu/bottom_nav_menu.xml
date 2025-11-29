@@ -1,0 +1,20 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="Home"/>
+    <item
+        android:id="@+id/nav_treinos"
+        android:icon="@drawable/ic_fitness_center"
+        android:title="Treinos"/>
+    <item
+        android:id="@+id/nav_perfil"
+        android:icon="@drawable/ic_person"
+        android:title="Perfil"/>
+    <item
+        android:id="@+id/nav_friends"
+        android:title="Comunidade"
+        android:icon="@drawable/ic_group" />
+
+</menu>
+

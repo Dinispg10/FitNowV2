@@ -1,0 +1,86 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:fillViewport="true"
+    android:background="@color/colorBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Adicionar amigo -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Adicionar amigo"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@color/colorTextPrimary" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <EditText
+                android:id="@+id/etEmailAmigo"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_edittext_arredondado"
+                android:hint="Email do amigo"
+                android:inputType="textEmailAddress"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorHint" />
+
+            <Button
+                android:id="@+id/btnAdicionarAmigo"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:text="Adicionar"
+                android:backgroundTint="@color/colorAccent"
+                android:textColor="@color/colorAccentTextOn" />
+        </LinearLayout>
+
+        <!-- Pedidos recebidos -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pedidos recebidos"
+            android:layout_marginTop="18dp"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="@color/colorTextPrimary" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvPedidos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:nestedScrollingEnabled="false" />
+
+        <!-- Amigos -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Os meus amigos"
+            android:layout_marginTop="18dp"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="@color/colorTextPrimary" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAmigos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:nestedScrollingEnabled="false" />
+
+    </LinearLayout>
+</ScrollView>

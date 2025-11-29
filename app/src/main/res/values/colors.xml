@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundos -->
+    <color name="colorBackground">#F7F7F7</color>   <!-- quase branco -->
+    <color name="colorSurface">#FFFFFF</color>      <!-- branco total -->
+
+    <!-- Textos principais e secundários -->
+    <color name="colorTextPrimary">#2E2E2E</color>  <!-- cinzento escuro -->
+    <color name="colorTextSecondary">#6B6B6B</color> <!-- cinzento médio -->
+    <color name="colorHint">#9E9E9E</color>          <!-- cinzento claro -->
+
+    <!-- Cor de ação / acento (cinzento grafite) -->
+    <color name="colorAccent">#5C5C5C</color>
+    <color name="colorAccentTextOn">#FFFFFF</color>
+
+    <!-- Para botões apagados -->
+    <color name="colorDisabled">#BDBDBD</color>
+
+    <color name="colorOutline">#D1D1D1</color> <!-- cinzento claro para separadores -->
+    <color name="colorError">#EF4444</color>   <!-- vermelho suave para ações de erro/destrutivas -->
+</resources>

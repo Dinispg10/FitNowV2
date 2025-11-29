@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "978673930835",
+    "project_id": "fitnow-81e17",
+    "storage_bucket": "fitnow-81e17.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978673930835:android:cbd31b693bd2f61bbe6ca6",
+        "android_client_info": {
+          "package_name": "com.example.fitnow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhxSiFRMengSmFlKrSXsTpf8uW7Z97gQw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

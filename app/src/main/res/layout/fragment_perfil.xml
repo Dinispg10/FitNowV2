@@ -1,0 +1,255 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Topo: Foto + Botão (esquerda) e Amigos (direita) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="top"
+            android:paddingBottom="8dp">
+
+            <!-- Coluna esquerda: Foto + Botão -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/ivFotoPerfil"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/ic_person"
+                    android:scaleType="centerCrop"
+                    android:background="@color/colorSurface"
+                    android:padding="8dp" />
+
+                <Button
+                    android:id="@+id/btnEscolherFoto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Escolher Foto"
+                    android:textAllCaps="false"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="@color/colorAccent"
+                    android:textColor="@color/colorAccentTextOn" />
+            </LinearLayout>
+
+            <Space
+                android:layout_width="12dp"
+                android:layout_height="match_parent" />
+
+            <!-- Coluna direita: Contador de amigos -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="end|top">
+
+                <Button
+                    android:id="@+id/btnAbrirDefinicoes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Definições"
+                    android:layout_marginTop="8dp" />
+
+
+                <TextView
+                    android:id="@+id/tvAmigos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Amigos: 0"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorTextPrimary"
+                    android:padding="8dp"
+                    android:background="@color/colorSurface" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Nome -->
+        <EditText
+            android:id="@+id/etNomePerfil"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nome"
+            android:textColor="@color/colorTextPrimary"
+            android:textColorHint="@color/colorHint"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_edittext_arredondado" />
+
+        <!-- Sexo (50%) + IMC (50%) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="12dp">
+
+            <Spinner
+                android:id="@+id/spSexoPerfil"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_edittext_arredondado"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:spinnerMode="dropdown" />
+
+            <TextView
+                android:id="@+id/tvImcValor"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_edittext_arredondado"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical|start"
+                android:text="IMC: (—)"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- Data de nascimento -->
+        <EditText
+            android:id="@+id/etDataNascimento"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Data de nascimento (yyyy-MM-dd)"
+            android:focusable="false"
+            android:clickable="true"
+            android:textColor="@color/colorTextPrimary"
+            android:textColorHint="@color/colorHint"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_edittext_arredondado" />
+
+        <!-- Altura + Peso (lado a lado) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <EditText
+                android:id="@+id/etAlturaCm"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_edittext_arredondado"
+                android:hint="Altura (cm)"
+                android:inputType="number"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorHint" />
+
+            <EditText
+                android:id="@+id/etPesoKg"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_edittext_arredondado"
+                android:hint="Peso (kg)"
+                android:inputType="numberDecimal"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorHint" />
+        </LinearLayout>
+
+        <!-- Barra de XP -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/tvLevelLeft"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Nível 1"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLevelRight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Máximo"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressXp"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="10dp"
+                android:max="100"
+                android:progress="0"
+                android:indeterminate="false"
+                android:progressTint="@color/colorAccent" />
+
+            <TextView
+                android:id="@+id/tvXpMini"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 / 100 XP"
+                android:textColor="@color/colorHint"
+                android:textSize="12sp"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- Histórico de níveis (gráfico mensal) -->
+        <LinearLayout
+            android:id="@+id/containerGrafico"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:padding="12dp"
+            android:background="@color/colorSurface">
+
+            <TextView
+                android:id="@+id/tvGraficoTitulo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Histórico de Níveis (mensal)"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextPrimary"
+                android:layout_marginBottom="8dp" />
+
+            <!-- MPAndroidChart LineChart -->
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/lineChartHistorico"
+                android:layout_width="match_parent"
+                android:layout_height="200dp" />
+        </LinearLayout>
+
+        <!-- Botão Guardar -->
+        <Button
+            android:id="@+id/btnGuardarPerfil"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Guardar"
+            android:textAllCaps="false"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="@color/colorAccent"
+            android:textColor="@color/colorAccentTextOn" />
+    </LinearLayout>
+</ScrollView>

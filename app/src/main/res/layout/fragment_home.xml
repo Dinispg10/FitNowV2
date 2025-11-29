@@ -1,0 +1,76 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="24dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bem-vindo!"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="22sp" />
+
+            <EditText
+                android:id="@+id/etPesquisa"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_edittext_arredondado"
+                android:hint="Procurar treinos"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorHint"
+                android:drawableStart="@android:drawable/ic_menu_search"
+                android:drawablePadding="8dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="16sp"
+                android:layout_marginVertical="14dp" />
+
+            <!-- Título do feed -->
+            <TextView
+                android:id="@+id/tvFeedTitulo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Treinos dos amigos"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="16sp"
+                android:layout_marginTop="16dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFeed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Botão flutuante (ajusta ícone/cores consoante os teus recursos) -->
+    <Button
+        android:id="@+id/btnNovoTreino"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="32dp"
+        android:text="Novo treino"
+        android:textStyle="bold"
+        android:textColor="@color/colorAccentTextOn"
+        android:backgroundTint="@color/colorAccent"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp" />
+</RelativeLayout>

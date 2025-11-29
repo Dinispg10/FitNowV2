@@ -1,0 +1,24 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="10dp"
+    android:paddingHorizontal="4dp">
+
+    <TextView
+        android:id="@+id/tvFriendName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Amigo"
+        android:textStyle="bold"
+        android:textColor="@color/colorTextPrimary" />
+
+    <TextView
+        android:id="@+id/tvFriendSince"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Desde —"
+        android:textColor="@color/colorTextSecondary"
+        android:textSize="12sp"
+        android:layout_marginTop="2dp" />
+</LinearLayout>
