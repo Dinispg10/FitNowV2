@@ -311,4 +311,6 @@ public class CriarTreinoFragment extends Fragment {
         int total = getDuracaoTotalSelecionados();
         editDuracao.setText(total + " min");
     }
+
+
 }

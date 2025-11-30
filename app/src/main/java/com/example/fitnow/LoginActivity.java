@@ -63,4 +63,17 @@ public class LoginActivity extends AppCompatActivity {
                 startActivity(new Intent(LoginActivity.this, CreateAccountActivity.class))
         );
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (mAuth == null) {
+            mAuth = FirebaseAuth.getInstance();
+        }
+
+        if (mAuth.getCurrentUser() != null) {
+            startActivity(new Intent(LoginActivity.this, MainActivity.class));
+            finish();
+        }
+    }
 }

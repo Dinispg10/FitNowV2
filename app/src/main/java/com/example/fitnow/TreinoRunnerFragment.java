@@ -403,6 +403,9 @@ public class TreinoRunnerFragment extends Fragment {
         post.put("treinoNome", treinoNome != null ? treinoNome : "Treino");
         post.put("durationMin", duracaoMin);
         post.put("xpGanho", xpGanho);
+        post.put("likes", 0);
+        post.put("commentCount", 0);
+        post.put("likedBy", new ArrayList<>());
         post.put("createdAt", FieldValue.serverTimestamp());
         post.put("visibility", "friends");
 

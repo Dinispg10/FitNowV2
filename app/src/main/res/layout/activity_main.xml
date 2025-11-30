@@ -8,14 +8,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="false"
-        android:background="@color/colorBackground"
-        android:elevation="4dp">
+        android:background="@drawable/gradient_appbar"
+        android:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/colorBackground"
+            android:background="@android:color/transparent"
             app:contentInsetStartWithNavigation="0dp">
 
             <LinearLayout
@@ -29,6 +29,7 @@
                     android:layout_height="40dp"
                     android:layout_marginStart="16dp"
                     android:layout_marginEnd="8dp"
+                    android:padding="6dp"
                     android:src="@drawable/logo"
                     android:contentDescription="@string/app_name" />
 
@@ -37,7 +38,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="FitNow"
-                    android:textColor="@color/colorTextPrimary"
+                    android:textColor="@color/colorSurface"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -56,11 +57,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@color/colorBackground"
-        android:elevation="8dp"
+        android:background="@color/colorSurface"
+        android:elevation="12dp"
+        app:itemIconTint="@color/colorTextSecondary"
+        app:itemRippleColor="@color/colorAccent"
+        app:itemTextColor="@color/colorTextSecondary"
         app:labelVisibilityMode="labeled"
-        app:itemIconTint="@color/colorTextPrimary"
-        app:itemTextColor="@color/colorTextPrimary"
         app:menu="@menu/bottom_nav_menu" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

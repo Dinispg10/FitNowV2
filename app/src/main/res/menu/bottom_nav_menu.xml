@@ -5,16 +5,17 @@
         android:title="Home"/>
     <item
         android:id="@+id/nav_treinos"
-        android:icon="@drawable/ic_fitness_center"
+        android:icon="@drawable/ic_treino"
         android:title="Treinos"/>
-    <item
-        android:id="@+id/nav_perfil"
-        android:icon="@drawable/ic_person"
-        android:title="Perfil"/>
     <item
         android:id="@+id/nav_friends"
         android:title="Comunidade"
         android:icon="@drawable/ic_group" />
+    <item
+        android:id="@+id/nav_perfil"
+        android:icon="@drawable/ic_person"
+        android:title="Perfil"/>
+
 
 </menu>
 
