@@ -227,7 +227,8 @@ public class TreinoDetalheFragment extends Fragment {
                 String nome = toStr(m.get("nome"), "(sem nome)");
                 String dificuldade = toStr(m.get("dificuldade"), "");
                 String tempo = mapTempoToString(m.get("tempo"), m.get("duracao")); // tenta ambos
-                lista.add(new Exercicio(nome, tempo, dificuldade));
+                String imagemResName = toStr(m.get("imagemResName"), null);
+                lista.add(new Exercicio(nome, tempo, dificuldade, imagemResName));
             }
         }
         return lista;

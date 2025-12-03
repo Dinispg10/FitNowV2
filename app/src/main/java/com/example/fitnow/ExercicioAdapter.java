@@ -1,16 +1,20 @@
 package com.example.fitnow;
 
 import android.graphics.Color;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ExercicioAdapter extends RecyclerView.Adapter<ExercicioAdapter.ViewHolder> {
 
@@ -41,6 +45,7 @@ public class ExercicioAdapter extends RecyclerView.Adapter<ExercicioAdapter.View
         holder.tvNome.setText(exercicio.getNome());
         holder.tvTempo.setText(exercicio.getTempo());
         holder.tvDificuldade.setText(exercicio.getDificuldade());
+        bindImagem(holder, exercicio);
 
         // Visual diferenciado para selecionado
         if (exerciciosSelecionados.contains(exercicio)) {
@@ -66,6 +71,42 @@ public class ExercicioAdapter extends RecyclerView.Adapter<ExercicioAdapter.View
             }
         });
     }
+    private void bindImagem(@NonNull ViewHolder holder, @NonNull Exercicio exercicio) {
+        String imagemResName = deriveDrawableName(exercicio);
+        int fallback = R.drawable.ic_launcher_foreground;
+        if (imagemResName == null || imagemResName.trim().isEmpty()) {
+            holder.imgExercicio.setImageResource(fallback);
+            return;
+        }
+
+        int resId = holder.itemView.getContext()
+                .getResources()
+                .getIdentifier(imagemResName, "drawable", holder.itemView.getContext().getPackageName());
+
+        holder.imgExercicio.setImageResource(resId != 0 ? resId : fallback);
+    }
+
+    /**
+     * Resolve o nome do drawable para o exercício. Se o Firestore não tiver o campo, gera a partir do nome
+     * do exercício (ex.: "Prancha Lateral" -> "prancha_lateral").
+     */
+    private String deriveDrawableName(@NonNull Exercicio exercicio) {
+        String base = !TextUtils.isEmpty(exercicio.getImagemResName())
+                ? exercicio.getImagemResName()
+                : exercicio.getNome();
+
+        if (TextUtils.isEmpty(base)) return null;
+
+        String normalized = Normalizer.normalize(base, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
+        String slug = normalized
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+
+        return slug;
+    }
 
     @Override
     public int getItemCount() {
@@ -90,12 +131,14 @@ public class ExercicioAdapter extends RecyclerView.Adapter<ExercicioAdapter.View
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvNome, tvTempo, tvDificuldade;
+        ImageView imgExercicio;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvNome = itemView.findViewById(R.id.tvNomeExercicio);
             tvTempo = itemView.findViewById(R.id.tvTempoExercicio);
             tvDificuldade = itemView.findViewById(R.id.tvDificuldade);
+            imgExercicio = itemView.findViewById(R.id.imgExercicio);
         }
     }
 }

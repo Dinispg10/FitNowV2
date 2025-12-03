@@ -20,6 +20,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,6 +32,9 @@ public class HomeFragment extends Fragment {
 
     private RecyclerView rvFeed;
     private PostAdapter adapter;
+    private MaterialButtonToggleGroup filterGroup;
+    private boolean showOnlyMine = false;
+
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final String myUid = FirebaseAuth.getInstance().getUid();
@@ -61,6 +66,21 @@ public class HomeFragment extends Fragment {
             }
         });
         rvFeed.setAdapter(adapter);
+
+        filterGroup = v.findViewById(R.id.filterGroup);
+        MaterialButton btnAll = v.findViewById(R.id.btnFilterTodos);
+        MaterialButton btnMine = v.findViewById(R.id.btnFilterMeus);
+        if (filterGroup != null && btnAll != null && btnMine != null) {
+            filterGroup.check(btnAll.getId());
+            filterGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                boolean newShowOnlyMine = checkedId == btnMine.getId();
+                if (newShowOnlyMine != showOnlyMine) {
+                    showOnlyMine = newShowOnlyMine;
+                    carregarFeed();
+                }
+            });
+        }
 
         // --- BOTÃO "NOVO TREINO" ---
         // Se o teu layout tiver Button:

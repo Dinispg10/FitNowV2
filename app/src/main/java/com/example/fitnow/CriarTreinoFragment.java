@@ -2,6 +2,7 @@ package com.example.fitnow;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -112,7 +113,6 @@ public class CriarTreinoFragment extends Fragment {
                         String n = d.getString("name");
                         if (!TextUtils.isEmpty(n)) categorias.add(n);
                     }
-
                     if (categorias.isEmpty()) {
                         Toast.makeText(getContext(), "Sem tipos configurados (exercise_types).", Toast.LENGTH_LONG).show();
                         return;
@@ -182,6 +182,10 @@ public class CriarTreinoFragment extends Fragment {
         for (DocumentSnapshot d : snap.getDocuments()) {
             String nome = d.getString("nome");
             String dificuldade = d.getString("dificuldade");
+            String imagemResName = d.contains("imagemResName")
+                    ? d.getString("imagemResName")
+                    : d.getString("imagem");
+
 
             Object tempoObj = d.get("tempo");
             String tempo = null;
@@ -192,7 +196,7 @@ public class CriarTreinoFragment extends Fragment {
             }
 
             if (!TextUtils.isEmpty(nome) && !TextUtils.isEmpty(tempo) && !TextUtils.isEmpty(dificuldade)) {
-                lista.add(new Exercicio(nome, tempo, dificuldade));
+                lista.add(new Exercicio(nome, tempo, dificuldade, imagemResName));
             }
         }
         return lista;
@@ -264,6 +268,7 @@ public class CriarTreinoFragment extends Fragment {
             map.put("nome", exercicio.getNome());
             map.put("tempo", exercicio.getTempo());           // gravar String (ex.: "15 min")
             map.put("dificuldade", exercicio.getDificuldade());
+            map.put("imagemResName", exercicio.getImagemResName());
             lista.add(map);
         }
         return lista;

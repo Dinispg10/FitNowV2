@@ -394,11 +394,19 @@ public class TreinoRunnerFragment extends Fragment {
 
     // Publica um post para o feed dos amigos
     private void publicarPostTreino(String treinoId, String treinoNome, int xpGanho, int duracaoMin) {
-        String uid = FirebaseAuth.getInstance().getUid();
-        if (uid == null) return;
+        if (mAuth == null) {
+            safeToast("Sessão expirada. Faz login novamente para publicar o treino.");
+            return;
+        }
+
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) {
+            safeToast("Sessão expirada. Faz login novamente para publicar o treino.");
+            return;
+        }
 
         Map<String, Object> post = new HashMap<>();
-        post.put("ownerUid", uid);
+        post.put("ownerUid", user.getUid());
         post.put("treinoId", treinoId);
         post.put("treinoNome", treinoNome != null ? treinoNome : "Treino");
         post.put("durationMin", duracaoMin);
@@ -409,6 +417,9 @@ public class TreinoRunnerFragment extends Fragment {
         post.put("createdAt", FieldValue.serverTimestamp());
         post.put("visibility", "friends");
 
-        FirebaseFirestore.getInstance().collection("posts").add(post);
+        db.collection("posts")
+                .add(post)
+                .addOnSuccessListener(r -> safeToast("Treino publicado no feed!"))
+                .addOnFailureListener(e -> safeToast("Falha ao publicar treino: " + e.getMessage()));
     }
 }

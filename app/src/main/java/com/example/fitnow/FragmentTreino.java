@@ -16,7 +16,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.Timestamp;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -186,6 +186,10 @@ public class FragmentTreino extends Fragment {
                     post.put("treinoNome", nome);
                     post.put("durationMin", duracaoMin);
                     post.put("xpGanho", 0); // ajusta se tiveres cálculo de XP
+                    post.put("visibility", "friends");
+                    post.put("likes", 0);
+                    post.put("commentCount", 0);
+                    post.put("likedBy", new ArrayList<>());
                     post.put("createdAt", FieldValue.serverTimestamp());
 
                     db.collection("posts").add(post)
