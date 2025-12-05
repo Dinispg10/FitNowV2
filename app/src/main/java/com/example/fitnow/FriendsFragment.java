@@ -51,9 +51,11 @@ public class FriendsFragment extends Fragment {
 
     private RecyclerView rvRequests;
     private RecyclerView rvFriends;
+    private RecyclerView rvRanking;
     private RequestsAdapter requestsAdapter;
     private FriendsAdapter friendsAdapter;
 
+    private RankingAdapter rankingAdapter;
     private FirebaseFirestore db;
     private String myUid;
 
@@ -92,6 +94,13 @@ public class FriendsFragment extends Fragment {
         rvFriends.addItemDecoration(new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL));
         friendsAdapter = new FriendsAdapter();
         rvFriends.setAdapter(friendsAdapter);
+
+        // Classificação (meu nível + amigos)
+        rvRanking = v.findViewById(R.id.rvRanking);
+        rvRanking.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvRanking.addItemDecoration(new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL));
+        rankingAdapter = new RankingAdapter();
+        rvRanking.setAdapter(rankingAdapter);
 
         btnAdd.setOnClickListener(v1 -> onAddClicked());
 
@@ -231,6 +240,8 @@ public class FriendsFragment extends Fragment {
                 .addOnSuccessListener(snap -> {
                     List<FriendItem> items = new ArrayList<>();
                     List<Task<DocumentSnapshot>> nameFetches = new ArrayList<>();
+                    Task<DocumentSnapshot> myProfileTask = db.collection("users").document(myUid).get();
+                    nameFetches.add(myProfileTask);
                     for (DocumentSnapshot d : snap.getDocuments()) {
                         FriendItem it = new FriendItem();
                         it.uid = d.getId();
@@ -239,10 +250,47 @@ public class FriendsFragment extends Fragment {
                         items.add(it);
 
                         nameFetches.add(db.collection("users").document(it.uid).get()
-                                .addOnSuccessListener(ud -> it.displayName = ud.getString("displayName")));
+                                .addOnSuccessListener(ud -> {
+                                    it.displayName = ud.getString("displayName");
+                                    Object lvlObj = ud.get("level");
+                                    if (lvlObj instanceof Number) it.level = ((Number) lvlObj).intValue();
+                                }));
                     }
                     Tasks.whenAllComplete(nameFetches)
-                            .addOnSuccessListener(done -> friendsAdapter.submit(items));
+                            .addOnSuccessListener(done -> {
+                        friendsAdapter.submit(items);
+
+                        RankingItem me = new RankingItem();
+                        me.isMe = true;
+                        me.level = 1;
+                        DocumentSnapshot mySnap = myProfileTask.getResult();
+                        if (mySnap != null) {
+                            me.name = mySnap.getString("displayName");
+                            Object lvlObj = mySnap.get("level");
+                            if (lvlObj instanceof Number) me.level = ((Number) lvlObj).intValue();
+                        }
+                        if (TextUtils.isEmpty(me.name)) me.name = "Eu";
+
+                        List<RankingItem> ranking = new ArrayList<>();
+                        ranking.add(me);
+                        for (FriendItem it : items) {
+                            RankingItem r = new RankingItem();
+                            r.name = !TextUtils.isEmpty(it.displayName) ? it.displayName : it.uid;
+                            r.level = it.level;
+                            r.isMe = false;
+                            ranking.add(r);
+                        }
+
+                        ranking.sort((a, b) -> {
+                            int levelDiff = Integer.compare(b.level, a.level);
+                            if (levelDiff != 0) return levelDiff;
+                            if (a.name == null) return 1;
+                            if (b.name == null) return -1;
+                            return a.name.compareToIgnoreCase(b.name);
+                        });
+
+                        rankingAdapter.submit(ranking);
+                    });
                 })
                 .addOnFailureListener(e -> toast("Falha a carregar amigos: " + e.getMessage()));
     }
@@ -319,6 +367,13 @@ public class FriendsFragment extends Fragment {
         String uid;
         String displayName;
         Date since;
+        int level = 1;
+    }
+
+    static class RankingItem {
+        String name;
+        int level = 1;
+        boolean isMe;
     }
 
     class RequestsAdapter extends RecyclerView.Adapter<RequestsAdapter.VH> {
@@ -399,6 +454,45 @@ public class FriendsFragment extends Fragment {
                 super(v);
                 tvName = v.findViewById(R.id.tvFriendName);
                 tvSince = v.findViewById(R.id.tvFriendSince);
+            }
+        }
+    }
+
+    class RankingAdapter extends RecyclerView.Adapter<RankingAdapter.VH> {
+        private final List<RankingItem> data = new ArrayList<>();
+
+        void submit(List<RankingItem> items) {
+            data.clear();
+            data.addAll(items);
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_ranking, parent, false);
+            return new VH(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH h, int pos) {
+            RankingItem it = data.get(pos);
+            h.tvPos.setText(String.valueOf(pos + 1));
+            h.tvName.setText(!TextUtils.isEmpty(it.name) ? it.name : "Utilizador");
+            h.tvLevel.setText("Nível " + it.level);
+            h.tvMe.setVisibility(it.isMe ? View.VISIBLE : View.GONE);
+        }
+
+        @Override public int getItemCount() { return data.size(); }
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView tvPos, tvName, tvLevel, tvMe;
+            VH(@NonNull View v) {
+                super(v);
+                tvPos = v.findViewById(R.id.tvRankingPos);
+                tvName = v.findViewById(R.id.tvRankingName);
+                tvLevel = v.findViewById(R.id.tvRankingLevel);
+                tvMe = v.findViewById(R.id.tvRankingMe);
             }
         }
     }

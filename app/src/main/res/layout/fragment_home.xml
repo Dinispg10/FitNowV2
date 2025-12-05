@@ -16,29 +16,26 @@
             android:padding="20dp">
 
             <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/filterGroup"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:layout_marginTop="4dp"
-                app:singleSelection="true">
+                android:layout_marginStart="8dp"
+                app:singleSelection="true"
+                app:selectionRequired="true">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnFilterTodos"
+                    android:id="@+id/btnFiltroTodos"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Todos os treinos"
+                    android:text="Todos"
                     android:textAllCaps="false" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnFilterMeus"
+                    android:id="@+id/btnFiltroMeus"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Meus treinos"
+                    android:text="Meus"
                     android:textAllCaps="false" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -55,7 +52,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Feed dos teus amigos"
+                    android:text="Feed"
                     android:textColor="@color/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />

@@ -24,6 +24,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -119,15 +121,16 @@ public class PerfilFragment extends Fragment {
             lineChart.getLegend().setEnabled(false);
             lineChart.getAxisRight().setEnabled(false);
             lineChart.getAxisLeft().setAxisMinimum(0f);
-            lineChart.getAxisLeft().setAxisMaximum(10f);
-            lineChart.setNoDataText("Sem histórico para este ano");
+            lineChart.setNoDataText("Sem histórico dos últimos 6 meses");
+            lineChart.setExtraOffsets(8f, 8f, 8f, 12f);
+
 
             XAxis x = lineChart.getXAxis();
             x.setPosition(XAxis.XAxisPosition.BOTTOM);
             x.setGranularity(1f);
             x.setDrawGridLines(false);
-            final String[] labels = {"Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"};
-            x.setValueFormatter(new IndexAxisValueFormatter(labels));
+            x.setTextSize(11f);
+            x.setLabelRotationAngle(-10f);
         }
 
         String[] opcoesSexo = new String[]{"", "Masculino", "Feminino", "Outro"};
@@ -329,10 +332,20 @@ public class PerfilFragment extends Fragment {
     private void plotFromDoc(@NonNull DocumentSnapshot doc) {
         if (lineChart == null) return;
 
-        int year = Integer.parseInt(new SimpleDateFormat("yyyy", Locale.getDefault()).format(new Date()));
+        Locale locale = Locale.getDefault();
+        SimpleDateFormat keyFormat = new SimpleDateFormat("yyyy-MM", locale);
+        SimpleDateFormat labelFormat = new SimpleDateFormat("MMM", locale);
+
         List<String> keys = new ArrayList<>();
-        for (int m = 1; m <= 12; m++) {
-            keys.add(String.format(Locale.getDefault(), "%04d-%02d", year, m));
+        List<String> labels = new ArrayList<>();
+
+        Calendar base = Calendar.getInstance();
+        base.set(Calendar.DAY_OF_MONTH, 1);
+        for (int i = 5; i >= 0; i--) {
+            Calendar cursor = (Calendar) base.clone();
+            cursor.add(Calendar.MONTH, -i);
+            keys.add(keyFormat.format(cursor.getTime()));
+            labels.add(formatLabel(labelFormat.format(cursor.getTime())));
         }
 
         Map<String, Object> histRaw = null;
@@ -342,6 +355,7 @@ public class PerfilFragment extends Fragment {
         } catch (Exception ignored) {}
 
         List<Entry> entries = new ArrayList<>();
+        int maxLevel = 0;
         for (int i = 0; i < keys.size(); i++) {
             String key = keys.get(i);
             int lvl = 0; // meses sem entrada contam como 0
@@ -349,17 +363,45 @@ public class PerfilFragment extends Fragment {
                 lvl = ((Number) histRaw.get(key)).intValue();
             }
             entries.add(new Entry(i, (float) lvl));
+            maxLevel = Math.max(maxLevel, lvl);
         }
 
         LineDataSet dataSet = new LineDataSet(entries, "Nível por mês");
         dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
         dataSet.setDrawValues(false);
         dataSet.setDrawCircles(true);
-        dataSet.setLineWidth(2f);
+        dataSet.setLineWidth(2.4f);
+
+        int accent = ContextCompat.getColor(requireContext(), R.color.colorAccent);
+        int accentAlt = ContextCompat.getColor(requireContext(), R.color.colorAccentAlt);
+        int surface = ContextCompat.getColor(requireContext(), R.color.colorSurface);
+
+        dataSet.setColor(accent);
+        dataSet.setCircleColor(accent);
+        dataSet.setCircleHoleColor(surface);
+        dataSet.setCircleRadius(4.5f);
+        dataSet.setHighLightColor(accentAlt);
+        dataSet.setDrawFilled(true);
+        dataSet.setFillColor(ColorUtils.setAlphaComponent(accent, 80));
 
         lineChart.setData(new LineData(dataSet));
+        XAxis xAxis = lineChart.getXAxis();
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
+
+        float paddedMax = Math.max(5f, maxLevel + 1f);
+        lineChart.getAxisLeft().setAxisMaximum(paddedMax);
+        lineChart.getAxisLeft().setTextSize(11f);
+        lineChart.getAxisLeft().setGranularity(1f);
+        lineChart.getAxisLeft().setGridColor(ContextCompat.getColor(requireContext(), R.color.colorOutline));
+        lineChart.getXAxis().setGridColor(ContextCompat.getColor(requireContext(), R.color.colorOutline));
         lineChart.animateY(600);
         lineChart.invalidate();
+    }
+
+    private String formatLabel(String raw) {
+        if (TextUtils.isEmpty(raw)) return raw;
+        String lower = raw.toLowerCase(Locale.getDefault());
+        return lower.substring(0, 1).toUpperCase(Locale.getDefault()) + lower.substring(1);
     }
 
     private void guardarPerfil() {
