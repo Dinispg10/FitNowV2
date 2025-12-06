@@ -65,6 +65,18 @@
                     android:textColor="@color/colorAccentTextOn"
                     />
 
+                <!-- Botão Guardar -->
+
+
+                <Button
+                    android:id="@+id/btnGuardarPerfil"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/colorAccent"
+                    android:text="Guardar Perfil"
+                    android:textAllCaps="false"
+                    android:textColor="@color/colorAccentTextOn" />
 
                 <TextView
                     android:id="@+id/tvAmigos"
@@ -244,15 +256,6 @@
                 android:layout_height="200dp" />
         </LinearLayout>
 
-        <!-- Botão Guardar -->
-        <Button
-            android:id="@+id/btnGuardarPerfil"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Guardar"
-            android:textAllCaps="false"
-            android:layout_marginTop="20dp"
-            android:backgroundTint="@color/colorAccent"
-            android:textColor="@color/colorAccentTextOn" />
+
     </LinearLayout>
 </ScrollView>

@@ -23,9 +23,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
+import androidx.fragment.app.Fragment;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -53,8 +53,12 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PerfilFragment extends Fragment {
+
+    private static final Pattern PERIOD_PATTERN = Pattern.compile("^(\\d{4}-\\d{2})");
 
     // UI
     private ImageView ivFoto;
@@ -112,7 +116,7 @@ public class PerfilFragment extends Fragment {
         tvLevelRight = v.findViewById(R.id.tvLevelRight);
         progressXp   = v.findViewById(R.id.progressXp);
         tvXpMini     = v.findViewById(R.id.tvXpMini);
-        tvAmigos     = v.findViewById(R.id.tvAmigos);   // <- número real de amigos
+        tvAmigos     = v.findViewById(R.id.tvAmigos);
 
         // Gráfico
         lineChart = v.findViewById(R.id.lineChartHistorico);
@@ -123,7 +127,6 @@ public class PerfilFragment extends Fragment {
             lineChart.getAxisLeft().setAxisMinimum(0f);
             lineChart.setNoDataText("Sem histórico dos últimos 6 meses");
             lineChart.setExtraOffsets(8f, 8f, 8f, 12f);
-
 
             XAxis x = lineChart.getXAxis();
             x.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -220,13 +223,80 @@ public class PerfilFragment extends Fragment {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
 
-        FirebaseFirestore.getInstance().collection("users")
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("users")
                 .document(uid)
                 .get()
                 .addOnSuccessListener(doc -> {
-                    preencherUI(doc);
-                    carregarGraficoHistorico(uid, doc);
-                    carregarNumeroAmigos(uid);   // <- conta amigos aqui
+                    // 1) Extrair info de XP / período
+                    int xp = 0;
+                    int level = 1;
+                    String xpPeriodDoc = null;
+
+                    if (doc != null && doc.exists()) {
+                        try {
+                            Object xpObj = doc.get("xp");
+                            if (xpObj instanceof Number) xp = ((Number) xpObj).intValue();
+
+                            Object lvlObj = doc.get("level");
+                            if (lvlObj instanceof Number) level = ((Number) lvlObj).intValue();
+
+                            xpPeriodDoc = normalizePeriod(doc.getString("xpPeriod"));
+                        } catch (Exception ignored) {}
+                    }
+
+                    String periodAtual = getCurrentXpPeriod();
+                    boolean precisaRollover = (xpPeriodDoc == null || !xpPeriodDoc.equals(periodAtual));
+
+                    if (precisaRollover) {
+                        String uid2 = FirebaseAuth.getInstance().getUid();
+                        if (uid2 == null) return;
+
+                        Map<String, Object> resetData = new HashMap<>();
+                        if (xpPeriodDoc != null) {
+                            resetData.put("levelHistory." + xpPeriodDoc, level);
+                        }
+                        resetData.put("xp", 0);
+                        resetData.put("level", 1);
+                        resetData.put("xpPeriod", periodAtual);
+                        resetData.put("lastUpdated", Timestamp.now());
+
+                        // Escreve o rollover e só depois recarrega doc para UI + gráfico
+                        db.collection("users")
+                                .document(uid2)
+                                .set(resetData, SetOptions.merge())
+                                .addOnSuccessListener(v -> {
+                                    db.collection("users")
+                                            .document(uid2)
+                                            .get()
+                                            .addOnSuccessListener(updatedDoc -> {
+                                                preencherUI(updatedDoc);
+                                                carregarGraficoHistorico(uid2, updatedDoc);
+                                                carregarNumeroAmigos(uid2);
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                Toast.makeText(getContext(),
+                                                        "Erro ao recarregar perfil após rollover.",
+                                                        Toast.LENGTH_SHORT).show();
+                                            });
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(getContext(),
+                                            "Erro ao atualizar período de XP.",
+                                            Toast.LENGTH_SHORT).show();
+                                    // fallback: usa doc antigo mesmo assim
+                                    preencherUI(doc);
+                                    carregarGraficoHistorico(uid, doc);
+                                    carregarNumeroAmigos(uid);
+                                });
+
+                    } else {
+                        // Sem rollover: usa o doc diretamente
+                        preencherUI(doc);
+                        carregarGraficoHistorico(uid, doc);
+                        carregarNumeroAmigos(uid);
+                    }
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(getContext(), "Falha ao carregar perfil.", Toast.LENGTH_SHORT).show());
@@ -246,38 +316,12 @@ public class PerfilFragment extends Fragment {
 
             int xp = 0;
             int level = 1;
-            String xpPeriodDoc = null;
-
             try {
                 Object xpObj = doc.get("xp");
                 if (xpObj instanceof Number) xp = ((Number) xpObj).intValue();
                 Object lvlObj = doc.get("level");
                 if (lvlObj instanceof Number) level = ((Number) lvlObj).intValue();
-                xpPeriodDoc = doc.getString("xpPeriod");
             } catch (Exception ignored) {}
-
-            String periodAtual = getCurrentXpPeriod();
-
-            // Se mudou o mês: fecha mês anterior e faz reset
-            if (xpPeriodDoc == null || !xpPeriodDoc.equals(periodAtual)) {
-                String uid = FirebaseAuth.getInstance().getUid();
-                if (uid != null) {
-                    Map<String, Object> resetData = new HashMap<>();
-                    if (xpPeriodDoc != null) {
-                        resetData.put("levelHistory." + xpPeriodDoc, level);
-                    }
-                    resetData.put("xp", 0);
-                    resetData.put("level", 1);
-                    resetData.put("xpPeriod", periodAtual);
-                    resetData.put("lastUpdated", Timestamp.now());
-                    FirebaseFirestore.getInstance()
-                            .collection("users")
-                            .document(uid)
-                            .set(resetData, SetOptions.merge());
-                }
-                xp = 0;
-                level = 1;
-            }
 
             fotoBase64Atual = doc.getString("photoBase64");
 
@@ -349,18 +393,45 @@ public class PerfilFragment extends Fragment {
         }
 
         Map<String, Object> histRaw = null;
+        Map<String, Integer> histConsolidado = new HashMap<>();
+        String xpPeriodDoc = normalizePeriod(doc.getString("xpPeriod"));
+        String periodAtual = getCurrentXpPeriod();
+        int levelAtual = 0;
+        Object lvlDoc = doc.get("level");
+        if (lvlDoc instanceof Number) levelAtual = ((Number) lvlDoc).intValue();
         try {
             Object h = doc.get("levelHistory");
             if (h instanceof Map) histRaw = (Map<String, Object>) h;
         } catch (Exception ignored) {}
+
+        if (histRaw != null) {
+            for (Map.Entry<String, Object> entry : histRaw.entrySet()) {
+                if (entry.getValue() instanceof Number) {
+                    String key = normalizePeriod(entry.getKey());
+                    if (key != null) {
+                        histConsolidado.put(key, ((Number) entry.getValue()).intValue());
+                    }
+                }
+            }
+        }
+
+        // Se o período mudou mas o documento ainda não foi atualizado, adiciona o nível
+        // do período anterior ao histórico mostrado para não perder o valor do mês acabado.
+        boolean mudouMes = xpPeriodDoc != null && !xpPeriodDoc.equals(periodAtual);
+        if (mudouMes && !histConsolidado.containsKey(xpPeriodDoc)) {
+            histConsolidado.put(xpPeriodDoc, levelAtual);
+        }
 
         List<Entry> entries = new ArrayList<>();
         int maxLevel = 0;
         for (int i = 0; i < keys.size(); i++) {
             String key = keys.get(i);
             int lvl = 0; // meses sem entrada contam como 0
-            if (histRaw != null && histRaw.get(key) instanceof Number) {
-                lvl = ((Number) histRaw.get(key)).intValue();
+            if (histConsolidado.containsKey(key)) {
+                lvl = histConsolidado.get(key);
+            } else if (!mudouMes && key.equals(xpPeriodDoc)) {
+                // Fallback: mês corrente sem histórico usa nível atual quando não houve rollover
+                lvl = levelAtual;
             }
             entries.add(new Entry(i, (float) lvl));
             maxLevel = Math.max(maxLevel, lvl);
@@ -402,6 +473,16 @@ public class PerfilFragment extends Fragment {
         if (TextUtils.isEmpty(raw)) return raw;
         String lower = raw.toLowerCase(Locale.getDefault());
         return lower.substring(0, 1).toUpperCase(Locale.getDefault()) + lower.substring(1);
+    }
+
+    @Nullable
+    private String normalizePeriod(@Nullable String raw) {
+        if (TextUtils.isEmpty(raw)) return null;
+        Matcher matcher = PERIOD_PATTERN.matcher(raw.trim());
+        if (matcher.find()) {
+            return matcher.group(1); // yyyy-MM
+        }
+        return null;
     }
 
     private void guardarPerfil() {

@@ -33,6 +33,10 @@ public class CreateAccountActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
+        btnBackLogin.setOnClickListener(v ->
+                startActivity(new Intent(CreateAccountActivity.this, LoginActivity.class))
+        );
+
         btnRegister.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
             String email = etEmail.getText().toString().trim();
@@ -64,25 +68,56 @@ public class CreateAccountActivity extends AppCompatActivity {
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
                             FirebaseUser user = mAuth.getCurrentUser();
-                            if(user != null) {
-                                UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                                        .setDisplayName(name)
-                                        .build();
 
-                                user.updateProfile(profileUpdates)
-                                        .addOnCompleteListener(profileTask -> {
-                                            if(profileTask.isSuccessful()) {
-                                                Toast.makeText(CreateAccountActivity.this, "Conta criada com sucesso!", Toast.LENGTH_SHORT).show();
-                                                startActivity(new Intent(CreateAccountActivity.this, LoginActivity.class));
-                                                finish();
-                                            }
-                                            else {
-                                                Toast.makeText(CreateAccountActivity.this, "Erro ao atualizar perfil.", Toast.LENGTH_SHORT).show();
-                                            }
-                                        });
+                            if (user == null) {
+                                Toast.makeText(CreateAccountActivity.this,
+                                        "Erro inesperado. Tenta novamente.",
+                                        Toast.LENGTH_LONG).show();
+                                return;
                             }
+
+                            // 1) Atualizar nome do utilizador
+                            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                    .setDisplayName(name)
+                                    .build();
+
+                            user.updateProfile(profileUpdates)
+                                    .addOnCompleteListener(profileTask -> {
+                                        if (profileTask.isSuccessful()) {
+
+                                            // 2) Enviar email de verificação
+                                            user.sendEmailVerification()
+                                                    .addOnCompleteListener(verifyTask -> {
+                                                        if (verifyTask.isSuccessful()) {
+                                                            Toast.makeText(CreateAccountActivity.this,
+                                                                    "Conta criada! Verifica o teu email para ativar a conta.",
+                                                                    Toast.LENGTH_LONG).show();
+
+                                                            // 3) Fazer logout e voltar ao login
+                                                            mAuth.signOut();
+                                                            Intent intent = new Intent(CreateAccountActivity.this, LoginActivity.class);
+                                                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                                            startActivity(intent);
+                                                            finish();
+
+                                                        } else {
+                                                            Toast.makeText(CreateAccountActivity.this,
+                                                                    "Conta criada, mas erro ao enviar email de verificação.",
+                                                                    Toast.LENGTH_LONG).show();
+                                                        }
+                                                    });
+
+                                        } else {
+                                            Toast.makeText(CreateAccountActivity.this,
+                                                    "Erro ao atualizar perfil.",
+                                                    Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+
                         } else {
-                            Toast.makeText(CreateAccountActivity.this, "Erro: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(CreateAccountActivity.this,
+                                    "Erro: " + task.getException().getMessage(),
+                                    Toast.LENGTH_LONG).show();
                         }
                     });
         });

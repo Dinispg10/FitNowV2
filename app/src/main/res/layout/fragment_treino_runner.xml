@@ -48,6 +48,16 @@
                 android:textSize="14sp"
                 android:layout_marginTop="2dp" />
 
+            <ImageView
+                android:id="@+id/imgExercicio"
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="12dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/app_name"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_launcher_foreground" />
+
             <TextView
                 android:id="@+id/tvExTimer"
                 android:layout_width="match_parent"
@@ -85,6 +95,8 @@
         android:orientation="horizontal"
         android:gravity="center"
         android:padding="16dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="45dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

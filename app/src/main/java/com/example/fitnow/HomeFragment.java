@@ -1,12 +1,9 @@
 package com.example.fitnow;
 
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
+import android.Manifest;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,8 +12,9 @@ import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -25,26 +23,22 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.button.MaterialButtonToggleGroup;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class HomeFragment extends Fragment {
 
-
-    private static final String CHANNEL_ID = "friend_workout_notifications";
     private RecyclerView rvFeed;
     private PostAdapter adapter;
 
@@ -52,7 +46,6 @@ public class HomeFragment extends Fragment {
     private MaterialButton btnFiltroMeus;
 
     private boolean mostrarApenasMeus = false;
-
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final String myUid = FirebaseAuth.getInstance().getUid();
@@ -62,8 +55,8 @@ public class HomeFragment extends Fragment {
     private final Map<String, Boolean> listenerInitialized = new HashMap<>();
     private final Map<String, String> friendNames = new HashMap<>();
 
-
-    @Nullable @Override
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -75,8 +68,15 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(v, savedInstanceState);
 
         notifPrefs = requireContext().getSharedPreferences("friend_post_notifications", Context.MODE_PRIVATE);
-        ensureNotificationChannel();
-        // --- FEED ---
+
+// Garante canais de notificação e permissões
+        NotificationHelper.ensureNotificationChannels(requireContext());
+        requestNotificationPermissionIfNeeded();
+
+// Sincroniza token FCM sempre que este fragment é aberto
+        MessagingTokenRegistrar.sync(requireContext());
+
+// --- FEED ---
         rvFeed = v.findViewById(R.id.rvFeed);
         rvFeed.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvFeed.addItemDecoration(new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL));
@@ -97,9 +97,7 @@ public class HomeFragment extends Fragment {
         btnFiltroMeus = v.findViewById(R.id.btnFiltroMeus);
         configurarFiltros();
 
-
-        // --- BOTÃO "NOVO TREINO" ---
-        // Se o teu layout tiver Button:
+// --- BOTÃO "NOVO TREINO" ---
         Button btnNovoTreino = v.findViewById(R.id.btnNovoTreino);
         if (btnNovoTreino != null) {
             btnNovoTreino.setOnClickListener(view -> {
@@ -142,6 +140,24 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    private void requestNotificationPermissionIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return;
+
+        Context context = requireContext();
+        boolean alreadyAllowed = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED;
+
+        if (alreadyAllowed) return;
+
+        ActivityCompat.requestPermissions(
+                requireActivity(),
+                new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                2001
+        );
+    }
+
     private void atualizarEstadoBotoes() {
         if (btnFiltroTodos == null || btnFiltroMeus == null) return;
         btnFiltroTodos.setChecked(!mostrarApenasMeus);
@@ -157,8 +173,11 @@ public class HomeFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(snap -> {
                     Set<String> owners = new HashSet<>();
-                    for (DocumentSnapshot d : snap.getDocuments()) owners.add(d.getId());
-                    owners.remove(myUid); // garantir que apenas amigos estão aqui
+                    for (DocumentSnapshot d : snap.getDocuments()) {
+                        owners.add(d.getId());
+                    }
+
+                    owners.remove(myUid);
 
                     Set<String> todosOwners = new HashSet<>(owners);
                     todosOwners.add(myUid);
@@ -178,10 +197,7 @@ public class HomeFragment extends Fragment {
                         return;
                     }
 
-
-
-
-                    List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+                    List<Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new ArrayList<>();
                     for (String uid : ownersParaFeed) {
                         tasks.add(
                                 db.collection("posts")
@@ -195,28 +211,30 @@ public class HomeFragment extends Fragment {
                     Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
                         List<Post> all = new ArrayList<>();
                         for (Object obj : results) {
-                            QuerySnapshot qs = (QuerySnapshot) obj;
+                            com.google.firebase.firestore.QuerySnapshot qs =
+                                    (com.google.firebase.firestore.QuerySnapshot) obj;
                             for (DocumentSnapshot d : qs.getDocuments()) {
                                 Post p = Post.from(d);
                                 if (p != null) all.add(p);
                             }
                         }
+
                         all.sort((a, b) -> {
                             long tA = (a.createdAt != null) ? a.createdAt.toDate().getTime() : 0L;
                             long tB = (b.createdAt != null) ? b.createdAt.toDate().getTime() : 0L;
                             return Long.compare(tB, tA);
                         });
+
                         adapter.submitList(all);
                     });
                 });
     }
 
-
     private void startFriendPostListeners(Set<String> allOwners) {
         Set<String> friendUids = new HashSet<>(allOwners);
         friendUids.remove(myUid);
 
-        // Remove listeners de amigos que já não estão na lista
+// Remove listeners de amigos removidos
         List<String> toRemove = new ArrayList<>();
         for (String uid : friendPostListeners.keySet()) {
             if (!friendUids.contains(uid)) toRemove.add(uid);
@@ -229,6 +247,7 @@ public class HomeFragment extends Fragment {
 
         for (String uid : friendUids) {
             if (friendPostListeners.containsKey(uid)) continue;
+
             ListenerRegistration reg = db.collection("posts")
                     .whereEqualTo("ownerUid", uid)
                     .orderBy("createdAt", Query.Direction.DESCENDING)
@@ -294,45 +313,18 @@ public class HomeFragment extends Fragment {
 
         String friendName = friendNames.get(friendUid);
         if (friendName == null || friendName.isEmpty()) friendName = "Um amigo";
-        String treinoNome = (post.treinoNome != null && !post.treinoNome.isEmpty()) ? post.treinoNome : "Treino";
+        String treinoNome = (post.treinoNome != null && !post.treinoNome.isEmpty())
+                ? post.treinoNome
+                : "Treino";
 
-        Intent intent = new Intent(ctx, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pi = PendingIntent.getActivity(
-                ctx,
-                (friendUid + treinoNome).hashCode(),
-                intent,
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                        ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                        : PendingIntent.FLAG_UPDATE_CURRENT
+        NotificationManagerCompat.from(ctx).notify(
+                friendUid.hashCode(),
+                NotificationHelper.buildFriendWorkoutNotification(
+                        ctx,
+                        friendName + " fez um treino",
+                        treinoNome,
+                        (friendUid + treinoNome).hashCode()
+                ).build()
         );
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(friendName + " fez um treino")
-                .setContentText(treinoNome)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .setContentIntent(pi);
-
-        NotificationManagerCompat.from(ctx).notify(friendUid.hashCode(), builder.build());
-    }
-
-    private void ensureNotificationChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
-        Context ctx = getContext();
-        if (ctx == null) return;
-
-        NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Treinos dos amigos",
-                NotificationManager.IMPORTANCE_HIGH
-        );
-        channel.setDescription("Alertas sempre que um amigo termina um treino.");
-
-        NotificationManager mgr = ctx.getSystemService(NotificationManager.class);
-        if (mgr != null) {
-            mgr.createNotificationChannel(channel);
-        }
     }
 }

@@ -22,6 +22,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -132,19 +133,21 @@ public class FriendsFragment extends Fragment {
         if (myUid == null) return;
         if (outgoingReg != null) { outgoingReg.remove(); outgoingReg = null; }
 
-        // Necessita índice: fromUid Asc, status Asc, createdAt Desc
         outgoingReg = db.collection("friend_requests")
                 .whereEqualTo("fromUid", myUid)
                 .whereEqualTo("status", "accepted")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
+                // sem orderBy, não precisa índice composto
                 .addSnapshotListener((snap, e) -> {
-                    if (e != null || snap == null) return;
+                    if (e != null) {
+                        e.printStackTrace(); // só para veres o erro se acontecer
+                        return;
+                    }
+                    if (snap == null) return;
 
                     for (DocumentSnapshot d : snap.getDocuments()) {
                         String toUid = d.getString("toUid");
                         if (TextUtils.isEmpty(toUid)) continue;
 
-                        // Garante que existe /users/{me}/friends/{toUid}
                         db.collection("users").document(myUid)
                                 .collection("friends").document(toUid)
                                 .get()
@@ -161,6 +164,7 @@ public class FriendsFragment extends Fragment {
                     }
                 });
     }
+
 
     // ---------- Adicionar amigo por email (via user_lookup) ----------
     private void onAddClicked() {
@@ -203,6 +207,10 @@ public class FriendsFragment extends Fragment {
         req.put("toUid",   toUid);
         req.put("status",  "pending");
         req.put("createdAt", FieldValue.serverTimestamp());
+        FirebaseUser authUser = FirebaseAuth.getInstance().getCurrentUser();
+        String displayName = authUser != null ? authUser.getDisplayName() : null;
+        if (TextUtils.isEmpty(displayName)) displayName = authUser != null ? authUser.getEmail() : null;
+        if (!TextUtils.isEmpty(displayName)) req.put("fromName", displayName);
 
         ref.set(req)
                 .addOnSuccessListener(unused -> {
@@ -332,15 +340,31 @@ public class FriendsFragment extends Fragment {
     }
 
     private void rejeitarPedido(RequestItem req) {
-        if (req == null) return;
+        if (myUid == null || req == null) return;
         String id = pairKey(req.fromUid, req.toUid);
-        db.collection("friend_requests").document(id)
-                .update("status", "rejected", "rejectedAt", FieldValue.serverTimestamp())
-                .addOnSuccessListener(unused -> {
-                    toast("Pedido rejeitado.");
-                    carregarPedidos();
-                })
-                .addOnFailureListener(e -> toast("Erro: " + e.getMessage()));
+        DocumentReference reqRef = db.collection("friend_requests").document(id);
+        DocumentReference myFriendDoc = db.collection("users")
+                .document(myUid)
+                .collection("friends")
+                .document(req.fromUid);
+
+        db.runTransaction(trx -> {
+            DocumentSnapshot snap = trx.get(reqRef);
+            if (!snap.exists()) return null;
+
+            String status = snap.getString("status");
+            String toUid = snap.getString("toUid");
+
+            if (!"pending".equals(status) || !myUid.equals(toUid)) return null;
+
+            trx.update(reqRef, "status", "rejected", "rejectedAt", FieldValue.serverTimestamp());
+            trx.delete(myFriendDoc);
+            return null;
+        }).addOnSuccessListener(unused -> {
+            toast("Pedido rejeitado.");
+            carregarPedidos();
+            carregarAmigos();
+        }).addOnFailureListener(e -> toast("Erro: " + e.getMessage()));
     }
 
     // ------------------ MODELOS + ADAPTERS ------------------
@@ -357,6 +381,7 @@ public class FriendsFragment extends Fragment {
             r.id = d.getId();
             r.fromUid = d.getString("fromUid");
             r.toUid = d.getString("toUid");
+            r.fromName = d.getString("fromName");
             Timestamp ts = d.getTimestamp("createdAt");
             r.createdAt = ts != null ? ts.toDate() : null;
             return r;
@@ -383,7 +408,7 @@ public class FriendsFragment extends Fragment {
             data.clear();
             data.addAll(items);
             for (RequestItem it : data) {
-                if (!TextUtils.isEmpty(it.fromUid)) {
+                if (TextUtils.isEmpty(it.fromName) && !TextUtils.isEmpty(it.fromUid)) {
                     db.collection("users").document(it.fromUid).get()
                             .addOnSuccessListener(doc -> {
                                 it.fromName = doc.getString("displayName");

@@ -4,10 +4,12 @@ package com.example.fitnow;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,6 +25,7 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
+import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -45,6 +48,7 @@ public class TreinoRunnerFragment extends Fragment {
 
     // UI
     private TextView tvExNome, tvExDif, tvProgresso, tvExTimer, tvTotalTimer;
+    private ImageView imgExercicio;
     private Button btnPlayPause, btnNext, btnStop;
 
     // Dados do treino
@@ -99,6 +103,7 @@ public class TreinoRunnerFragment extends Fragment {
         tvProgresso = view.findViewById(R.id.tvProgresso);
         tvExTimer = view.findViewById(R.id.tvExTimer);
         tvTotalTimer = view.findViewById(R.id.tvTotalTimer);
+        imgExercicio = view.findViewById(R.id.imgExercicio);
 
         btnPlayPause = view.findViewById(R.id.btnPlayPause);
         btnNext = view.findViewById(R.id.btnNext);
@@ -197,12 +202,58 @@ public class TreinoRunnerFragment extends Fragment {
         tvExNome.setText(nome);
         tvExDif.setText(dif);
         tvProgresso.setText((currentIndex + 1) + "/" + exercicios.size());
+        atualizarImagemExercicio(ex);
 
         long duracaoSeg = obterDuracaoExercicioEmSegundos(ex);
         exercicioRestanteMillis = duracaoSeg * 1000L;
 
         atualizarTimersText();
     }
+
+    private void atualizarImagemExercicio(@NonNull Map<String, Object> exercicio) {
+        if (getContext() == null) return;
+
+        String imagemResName = null;
+        Object imagemObj = exercicio.get("imagemResName");
+        if (imagemObj instanceof String) imagemResName = (String) imagemObj;
+
+        if (TextUtils.isEmpty(imagemResName)) {
+            Object imagemAlt = exercicio.get("imagem");
+            if (imagemAlt instanceof String) imagemResName = (String) imagemAlt;
+        }
+
+        if (TextUtils.isEmpty(imagemResName)) {
+            Object nomeObj = exercicio.get("nome");
+            if (nomeObj != null) imagemResName = deriveDrawableName(String.valueOf(nomeObj));
+        }
+
+        int fallback = R.drawable.ic_launcher_foreground;
+        if (TextUtils.isEmpty(imagemResName)) {
+            imgExercicio.setImageResource(fallback);
+            return;
+        }
+
+        int resId = getResources().getIdentifier(
+                imagemResName,
+                "drawable",
+                requireContext().getPackageName()
+        );
+
+        imgExercicio.setImageResource(resId != 0 ? resId : fallback);
+    }
+
+    private String deriveDrawableName(String base) {
+        if (TextUtils.isEmpty(base)) return null;
+
+        String normalized = Normalizer.normalize(base, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
+        return normalized
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+    }
+
 
     private void atualizarTimersText() {
         tvExTimer.setText(formatarTempo(exercicioRestanteMillis));
