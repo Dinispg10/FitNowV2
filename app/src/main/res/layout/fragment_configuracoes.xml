@@ -27,14 +27,14 @@
             android:layout_marginBottom="16dp" />
 
         <Button
-            android:id="@+id/btnChangePassword"
+            android:id="@+id/btnResetPassword"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Alterar Senha"
+            android:layout_marginTop="12dp"
+            android:text="Repor palavra-passe"
             android:textAllCaps="false"
-            android:textStyle="bold"
-            android:textColor="@color/colorAccentTextOn"
-            android:backgroundTint="@color/colorAccent" />
+            android:textColor="@color/colorTextPrimary"
+            android:backgroundTint="@color/colorSurface" />
 
         <Button
             android:id="@+id/btnLogout"

@@ -1,4 +1,3 @@
-// === TreinoRunnerFragment.java (com safeToast para evitar NPE) ===
 package com.example.fitnow;
 
 import android.content.Context;
@@ -65,6 +64,9 @@ public class TreinoRunnerFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
 
+    // ✅ VISIBILIDADE - lida do perfil do user
+    private String postVisibility = "friends"; // fallback
+
     // Application context seguro para Toasts após o fragment ser removido
     private Context appCtx;
 
@@ -118,6 +120,9 @@ public class TreinoRunnerFragment extends Fragment {
             return;
         }
 
+        // ✅ CARREGA VISIBILIDADE DO PERFIL PRIMEIRO
+        carregarVisibilidadeUsuario();
+
         carregarTreino();
     }
 
@@ -136,6 +141,27 @@ public class TreinoRunnerFragment extends Fragment {
         if (appCtx != null) {
             Toast.makeText(appCtx, msg, Toast.LENGTH_LONG).show();
         }
+    }
+
+    // ✅ NOVO: Carrega postVisibility do perfil do usuário
+    private void carregarVisibilidadeUsuario() {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user == null) return;
+
+        db.collection("users").document(user.getUid())
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        String vis = doc.getString("postVisibility");
+                        if (!TextUtils.isEmpty(vis) && ("private".equals(vis) || "friends".equals(vis))) {
+                            postVisibility = vis;
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // fallback para "friends"
+                    postVisibility = "friends";
+                });
     }
 
     // --------- carregar treino ---------
@@ -254,7 +280,6 @@ public class TreinoRunnerFragment extends Fragment {
                 .replaceAll("^_+|_+$", "");
     }
 
-
     private void atualizarTimersText() {
         tvExTimer.setText(formatarTempo(exercicioRestanteMillis));
         tvTotalTimer.setText(formatarTempo(totalRestanteMillis));
@@ -338,10 +363,10 @@ public class TreinoRunnerFragment extends Fragment {
 
         safeToastLong("Treino terminado! +" + xpGanho + " XP");
 
-        // Atualiza XP e Level (cap) e depois publica o post
+        // 1. Atualiza XP e Level
         atualizarXpELevel(xpGanho);
 
-        // Publicar post do treino
+        // 2. Publica post (APENAS ao terminar - CORRETO!)
         int durMin = (int) Math.max(1, Math.round(totalMillis / 60000.0));
         publicarPostTreino(treinoId, treinoNome, xpGanho, durMin);
 
@@ -443,7 +468,7 @@ public class TreinoRunnerFragment extends Fragment {
         });
     }
 
-    // Publica um post para o feed dos amigos
+    // ✅ PUBLICAR POST - USA VISIBILIDADE DO PERFIL (toggle ligado=friends, desligado=private)
     private void publicarPostTreino(String treinoId, String treinoNome, int xpGanho, int duracaoMin) {
         if (mAuth == null) {
             safeToast("Sessão expirada. Faz login novamente para publicar o treino.");
@@ -466,11 +491,19 @@ public class TreinoRunnerFragment extends Fragment {
         post.put("commentCount", 0);
         post.put("likedBy", new ArrayList<>());
         post.put("createdAt", FieldValue.serverTimestamp());
-        post.put("visibility", "friends");
+
+        // ✅ USA VISIBILIDADE DO PERFIL - RESPEITA O TOGGLE!
+        post.put("visibility", postVisibility); // "friends" ou "private"
 
         db.collection("posts")
                 .add(post)
-                .addOnSuccessListener(r -> safeToast("Treino publicado no feed!"))
+                .addOnSuccessListener(r -> {
+                    String msg = "Treino publicado!";
+                    if ("private".equals(postVisibility)) {
+                        msg += " (só para ti)";
+                    }
+                    safeToast(msg);
+                })
                 .addOnFailureListener(e -> safeToast("Falha ao publicar treino: " + e.getMessage()));
     }
 }

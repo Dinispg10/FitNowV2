@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,11 +28,34 @@ public class ConfiguracoesFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        Button btnChangePassword = view.findViewById(R.id.btnChangePassword);
+
+        Button btnResetPassword = view.findViewById(R.id.btnResetPassword);
         Button btnLogout = view.findViewById(R.id.btnLogout);
 
-        btnChangePassword.setOnClickListener(v -> {
-            startActivity(new Intent(getActivity(), ChangePasswordActivity.class));
+
+        btnResetPassword.setOnClickListener(v -> {
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() == null || auth.getCurrentUser().getEmail() == null) {
+                Toast.makeText(requireContext(),
+                        "Inicia sessão novamente para redefinir a palavra-passe.",
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            String email = auth.getCurrentUser().getEmail();
+
+            auth.sendPasswordResetEmail(email)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(requireContext(),
+                                    "Enviámos um link para redefinir a palavra-passe.",
+                                    Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(requireContext(),
+                                    "Erro ao enviar email: " + task.getException().getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
         });
 
         btnLogout.setOnClickListener(v -> {

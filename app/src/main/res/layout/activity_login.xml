@@ -84,6 +84,17 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="16dp" />
 
+        <TextView
+            android:id="@+id/tvForgotPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Esqueceste-te da palavra-passe?"
+            android:textColor="@color/colorAccent"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"
+            />
+
         <!-- Botão Entrar -->
         <Button
             android:id="@+id/btnLogin"
@@ -114,7 +125,12 @@
                 android:textColor="@color/colorAccent"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+
+
         </LinearLayout>
+
+
+
 
     </LinearLayout>
 </LinearLayout>

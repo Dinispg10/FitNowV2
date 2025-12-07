@@ -303,6 +303,7 @@ public class FriendsFragment extends Fragment {
                 .addOnFailureListener(e -> toast("Falha a carregar amigos: " + e.getMessage()));
     }
 
+
     // ---------- Aceitar / Rejeitar ----------
     private void aceitarPedido(RequestItem req) {
         if (myUid == null || req == null) return;

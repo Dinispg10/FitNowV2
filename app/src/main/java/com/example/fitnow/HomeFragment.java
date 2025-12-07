@@ -31,11 +31,14 @@ import com.google.firebase.firestore.Query;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class HomeFragment extends Fragment {
 
@@ -172,61 +175,67 @@ public class HomeFragment extends Fragment {
                 .collection("friends")
                 .get()
                 .addOnSuccessListener(snap -> {
-                    Set<String> owners = new HashSet<>();
+                    Set<String> friends = new HashSet<>();
                     for (DocumentSnapshot d : snap.getDocuments()) {
-                        owners.add(d.getId());
+                        friends.add(d.getId());
                     }
 
-                    owners.remove(myUid);
+                    preloadFriendNames(friends);
+                    startFriendPostListeners(friends);
 
-                    Set<String> todosOwners = new HashSet<>(owners);
-                    todosOwners.add(myUid);
-
-                    preloadFriendNames(todosOwners);
-                    startFriendPostListeners(new HashSet<>(todosOwners));
-
-                    Set<String> ownersParaFeed = new HashSet<>();
                     if (mostrarApenasMeus) {
-                        ownersParaFeed.add(myUid);
+                        // SÓ MEUS POSTS
+                        db.collection("posts")
+                                .whereEqualTo("ownerUid", myUid)
+                                .orderBy("createdAt", Query.Direction.DESCENDING)
+                                .limit(20)
+                                .get()
+                                .addOnSuccessListener(querySnapshot -> {
+                                    List<Post> posts = new ArrayList<>();
+                                    for (DocumentSnapshot d : querySnapshot.getDocuments()) {
+                                        Post p = Post.from(d);
+                                        if (p != null) posts.add(p);
+                                    }
+                                    adapter.submitList(posts);
+                                });
                     } else {
-                        ownersParaFeed.addAll(todosOwners);
+                        // MEUS POSTS PRIMEIRO
+                        db.collection("posts")
+                                .whereEqualTo("ownerUid", myUid)
+                                .orderBy("createdAt", Query.Direction.DESCENDING)
+                                .limit(10)
+                                .get()
+                                .addOnSuccessListener(querySnapshot -> {
+                                    List<Post> allPosts = new ArrayList<>();
+                                    for (DocumentSnapshot d : querySnapshot.getDocuments()) {
+                                        Post p = Post.from(d);
+                                        if (p != null) allPosts.add(p);
+                                    }
+
+                                    // + POSTS DE AMIGOS (SÓ "friends")
+                                    for (String friendUid : friends) {
+                                        db.collection("posts")
+                                                .whereEqualTo("ownerUid", friendUid)
+                                                .whereEqualTo("visibility", "friends")
+                                                .orderBy("createdAt", Query.Direction.DESCENDING)
+                                                .limit(5)
+                                                .get()
+                                                .addOnSuccessListener(qs -> {
+                                                    for (DocumentSnapshot d : qs.getDocuments()) {
+                                                        Post p = Post.from(d);
+                                                        if (p != null) {
+                                                            allPosts.add(p);
+                                                        }
+                                                    }
+                                                    allPosts.sort((a, b) -> Long.compare(
+                                                            b.createdAt != null ? b.createdAt.toDate().getTime() : 0,
+                                                            a.createdAt != null ? a.createdAt.toDate().getTime() : 0
+                                                    ));
+                                                    adapter.submitList(new ArrayList<>(allPosts));
+                                                });
+                                    }
+                                });
                     }
-
-                    if (ownersParaFeed.isEmpty()) {
-                        adapter.submitList(new ArrayList<>());
-                        return;
-                    }
-
-                    List<Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new ArrayList<>();
-                    for (String uid : ownersParaFeed) {
-                        tasks.add(
-                                db.collection("posts")
-                                        .whereEqualTo("ownerUid", uid)
-                                        .orderBy("createdAt", Query.Direction.DESCENDING)
-                                        .limit(20)
-                                        .get()
-                        );
-                    }
-
-                    Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
-                        List<Post> all = new ArrayList<>();
-                        for (Object obj : results) {
-                            com.google.firebase.firestore.QuerySnapshot qs =
-                                    (com.google.firebase.firestore.QuerySnapshot) obj;
-                            for (DocumentSnapshot d : qs.getDocuments()) {
-                                Post p = Post.from(d);
-                                if (p != null) all.add(p);
-                            }
-                        }
-
-                        all.sort((a, b) -> {
-                            long tA = (a.createdAt != null) ? a.createdAt.toDate().getTime() : 0L;
-                            long tB = (b.createdAt != null) ? b.createdAt.toDate().getTime() : 0L;
-                            return Long.compare(tB, tA);
-                        });
-
-                        adapter.submitList(all);
-                    });
                 });
     }
 

@@ -230,6 +230,15 @@
                 android:layout_marginTop="6dp" />
         </LinearLayout>
 
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchFeedVisibilidade"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Publicar treinos também para amigos"
+            android:textColor="@color/colorTextPrimary"
+            android:checked="true" />
+
         <!-- Histórico de níveis (gráfico mensal) -->
         <LinearLayout
             android:id="@+id/containerGrafico"

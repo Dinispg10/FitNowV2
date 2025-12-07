@@ -18,6 +18,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText etEmail, etPassword;
     private Button btnLogin;
     private TextView tvCreateAccount;
+    private TextView tvForgotPassword;
     private FirebaseAuth mAuth;
 
     @Override
@@ -39,6 +40,7 @@ public class LoginActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etPassword);
         btnLogin = findViewById(R.id.btnLogin);
         tvCreateAccount = findViewById(R.id.tvCreateAccount);
+        tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
 
         btnLogin.setOnClickListener(v -> {
@@ -103,5 +105,28 @@ public class LoginActivity extends AppCompatActivity {
         tvCreateAccount.setOnClickListener(v ->
                 startActivity(new Intent(LoginActivity.this, CreateAccountActivity.class))
         );
+
+        tvForgotPassword.setOnClickListener(v -> {
+            String email = etEmail.getText().toString().trim();
+
+            if (TextUtils.isEmpty(email)) {
+                etEmail.setError("Email obrigatório");
+                etEmail.requestFocus();
+                return;
+            }
+
+            mAuth.sendPasswordResetEmail(email)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(LoginActivity.this,
+                                    "Enviámos um link para redefinir a palavra-passe.",
+                                    Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(LoginActivity.this,
+                                    "Erro ao enviar email: " + task.getException().getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+        });
     }
 }

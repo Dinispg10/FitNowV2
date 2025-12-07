@@ -23,6 +23,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.fragment.app.Fragment;
@@ -68,6 +69,7 @@ public class PerfilFragment extends Fragment {
     private EditText etAlturaCm;       // cm
     private EditText etPesoKg;         // kg
     private TextView tvImc;
+    private SwitchCompat switchFeedVisibilidade;  // ✅ ADICIONADO
     private Button btnEscolherFoto, btnGuardar, btnAbrirDefinicoes;
 
     // Barra de progresso entre níveis
@@ -77,9 +79,12 @@ public class PerfilFragment extends Fragment {
     // Gráfico histórico
     private LineChart lineChart;
 
-    // Estado
+    // Estado ✅ VISIBILIDADE
     private Uri fotoSelecionadaUri = null;
-    private String fotoBase64Atual = null; // foto guardada / a guardar
+    private String fotoBase64Atual = null;
+    private String postVisibilityPreference = "friends";  // ✅ ADICIONADO
+    private boolean visibilityChangedByUser = false;     // ✅ ADICIONADO
+    private boolean isApplyingVisibilityFromDb = false;  // ✅ ADICIONADO
 
     private final SimpleDateFormat dateFormat =
             new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -107,6 +112,7 @@ public class PerfilFragment extends Fragment {
         etAlturaCm = v.findViewById(R.id.etAlturaCm);
         etPesoKg = v.findViewById(R.id.etPesoKg);
         tvImc = v.findViewById(R.id.tvImcValor);
+        switchFeedVisibilidade = v.findViewById(R.id.switchFeedVisibilidade);  // ✅ ADICIONADO
         btnEscolherFoto = v.findViewById(R.id.btnEscolherFoto);
         btnGuardar = v.findViewById(R.id.btnGuardarPerfil);
         btnAbrirDefinicoes = v.findViewById(R.id.btnAbrirDefinicoes);
@@ -154,6 +160,16 @@ public class PerfilFragment extends Fragment {
         btnEscolherFoto.setOnClickListener(v12 -> pickImageLauncher.launch("image/*"));
         btnGuardar.setOnClickListener(v13 -> guardarPerfil());
 
+        // ✅ SWITCH COMPLETO - Toggle ligado = friends, desligado = private
+        if (switchFeedVisibilidade != null) {
+            switchFeedVisibilidade.setEnabled(false); // Desativa até carregar do DB
+            switchFeedVisibilidade.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isApplyingVisibilityFromDb) return; // Ignora mudanças automáticas do DB
+                postVisibilityPreference = isChecked ? "friends" : "private";
+                visibilityChangedByUser = true; // Marca para salvar
+            });
+        }
+
         if (btnAbrirDefinicoes != null) {
             btnAbrirDefinicoes.setOnClickListener(view -> {
                 if (getActivity() instanceof MainActivity) {
@@ -163,7 +179,6 @@ public class PerfilFragment extends Fragment {
         }
 
         carregarPerfil();
-
         return v;
     }
 
@@ -229,7 +244,6 @@ public class PerfilFragment extends Fragment {
                 .document(uid)
                 .get()
                 .addOnSuccessListener(doc -> {
-                    // 1) Extrair info de XP / período
                     int xp = 0;
                     int level = 1;
                     String xpPeriodDoc = null;
@@ -262,7 +276,6 @@ public class PerfilFragment extends Fragment {
                         resetData.put("xpPeriod", periodAtual);
                         resetData.put("lastUpdated", Timestamp.now());
 
-                        // Escreve o rollover e só depois recarrega doc para UI + gráfico
                         db.collection("users")
                                 .document(uid2)
                                 .set(resetData, SetOptions.merge())
@@ -285,14 +298,12 @@ public class PerfilFragment extends Fragment {
                                     Toast.makeText(getContext(),
                                             "Erro ao atualizar período de XP.",
                                             Toast.LENGTH_SHORT).show();
-                                    // fallback: usa doc antigo mesmo assim
                                     preencherUI(doc);
                                     carregarGraficoHistorico(uid, doc);
                                     carregarNumeroAmigos(uid);
                                 });
 
                     } else {
-                        // Sem rollover: usa o doc diretamente
                         preencherUI(doc);
                         carregarGraficoHistorico(uid, doc);
                         carregarNumeroAmigos(uid);
@@ -323,6 +334,18 @@ public class PerfilFragment extends Fragment {
                 if (lvlObj instanceof Number) level = ((Number) lvlObj).intValue();
             } catch (Exception ignored) {}
 
+            // ✅ CARREGA VISIBILIDADE DO FIRESTORE
+            String postVisibility = doc.getString("postVisibility");
+            postVisibilityPreference = TextUtils.isEmpty(postVisibility) ? "friends" : postVisibility;
+            visibilityChangedByUser = false;
+
+            if (switchFeedVisibilidade != null) {
+                isApplyingVisibilityFromDb = true;  // Evita loop
+                switchFeedVisibilidade.setChecked(!"private".equals(postVisibilityPreference)); // ligado=friends
+                switchFeedVisibilidade.setEnabled(true);
+                isApplyingVisibilityFromDb = false;
+            }
+
             fotoBase64Atual = doc.getString("photoBase64");
 
             if (!TextUtils.isEmpty(nome)) etNome.setText(nome);
@@ -340,25 +363,28 @@ public class PerfilFragment extends Fragment {
             if (heightCm != null && heightCm > 0) etAlturaCm.setText(String.valueOf(heightCm));
             if (weightKg != null && weightKg > 0) etPesoKg.setText(String.valueOf(weightKg));
 
-            // Foto (Base64)
             if (!TextUtils.isEmpty(fotoBase64Atual) && isAdded()) {
                 Bitmap bmp = decodeBase64ToBitmap(fotoBase64Atual);
                 if (bmp != null) ivFoto.setImageBitmap(bmp);
             }
 
-            // Barra de progresso
             atualizarBarraNivel(level, xp);
-
             calcularImcUI();
         } else {
             tvImcValorSafe("(—)");
+            // Default para switch se não há dados
+            if (switchFeedVisibilidade != null) {
+                isApplyingVisibilityFromDb = true;
+                switchFeedVisibilidade.setChecked(true); // friends por default
+                switchFeedVisibilidade.setEnabled(true);
+                isApplyingVisibilityFromDb = false;
+            }
         }
     }
 
     private void carregarGraficoHistorico(@NonNull String uid, @Nullable DocumentSnapshot doc) {
         if (lineChart == null) return;
 
-        // Tenta usar o doc já carregado; se não existir, faz get()
         if (doc == null || !doc.exists()) {
             FirebaseFirestore.getInstance().collection("users").document(uid)
                     .get()
@@ -415,8 +441,6 @@ public class PerfilFragment extends Fragment {
             }
         }
 
-        // Se o período mudou mas o documento ainda não foi atualizado, adiciona o nível
-        // do período anterior ao histórico mostrado para não perder o valor do mês acabado.
         boolean mudouMes = xpPeriodDoc != null && !xpPeriodDoc.equals(periodAtual);
         if (mudouMes && !histConsolidado.containsKey(xpPeriodDoc)) {
             histConsolidado.put(xpPeriodDoc, levelAtual);
@@ -426,11 +450,10 @@ public class PerfilFragment extends Fragment {
         int maxLevel = 0;
         for (int i = 0; i < keys.size(); i++) {
             String key = keys.get(i);
-            int lvl = 0; // meses sem entrada contam como 0
+            int lvl = 0;
             if (histConsolidado.containsKey(key)) {
                 lvl = histConsolidado.get(key);
             } else if (!mudouMes && key.equals(xpPeriodDoc)) {
-                // Fallback: mês corrente sem histórico usa nível atual quando não houve rollover
                 lvl = levelAtual;
             }
             entries.add(new Entry(i, (float) lvl));
@@ -480,7 +503,7 @@ public class PerfilFragment extends Fragment {
         if (TextUtils.isEmpty(raw)) return null;
         Matcher matcher = PERIOD_PATTERN.matcher(raw.trim());
         if (matcher.find()) {
-            return matcher.group(1); // yyyy-MM
+            return matcher.group(1);
         }
         return null;
     }
@@ -552,20 +575,32 @@ public class PerfilFragment extends Fragment {
                     if (pesoKg != null) data.put("weightKg", pesoKg); else data.put("weightKg", null);
                     if (!TextUtils.isEmpty(photoBase64Final)) data.put("photoBase64", photoBase64Final);
 
-                    // email no doc do user + lookup
-                    String email = null;
+                    // ✅ VISIBILIDADE SALVA PERFEITAMENTE
+                    String visibilityToSave;
+                    if (switchFeedVisibilidade != null && visibilityChangedByUser) {
+                        // Toggle ligado = friends, desligado = private
+                        visibilityToSave = switchFeedVisibilidade.isChecked() ? "friends" : "private";
+                    } else if (doc != null && doc.exists()) {
+                        String existing = doc.getString("postVisibility");
+                        visibilityToSave = TextUtils.isEmpty(existing) ? "friends" : existing;
+                    } else {
+                        visibilityToSave = "friends"; // default
+                    }
+                    data.put("postVisibility", visibilityToSave);
+                    postVisibilityPreference = visibilityToSave;
+                    visibilityChangedByUser = false;
+
+                    // email
                     FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
                     if (u != null && !TextUtils.isEmpty(u.getEmail())) {
-                        email = u.getEmail();
-                        data.put("email", email);
+                        data.put("email", u.getEmail());
                     }
 
-                    // Commit em batch: users + user_lookup/{email_lower}
                     WriteBatch batch = db.batch();
-
                     DocumentReference userRef = db.collection("users").document(uid);
                     batch.set(userRef, data, SetOptions.merge());
 
+                    String email = u != null ? u.getEmail() : null;
                     if (!TextUtils.isEmpty(email)) {
                         String emailLower = email.toLowerCase(Locale.ROOT);
                         DocumentReference luRef = db.collection("user_lookup").document(emailLower);
@@ -633,7 +668,6 @@ public class PerfilFragment extends Fragment {
         if (tvXpMini != null) tvXpMini.setText(mini);
     }
 
-    // ---------- Número de amigos ----------
     private void carregarNumeroAmigos(@NonNull String uid) {
         if (tvAmigos == null) return;
 
@@ -651,7 +685,6 @@ public class PerfilFragment extends Fragment {
                 });
     }
 
-    // --------- Helpers para Base64 / Bitmap -------------
     @Nullable
     private String encodeImageToBase64(@NonNull Uri uri) {
         try {

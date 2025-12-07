@@ -10,7 +10,7 @@
         android:id="@+id/editNomeTreino"
         android:layout_width="0dp"
         android:layout_height="48dp"
-        android:hint=":Nome do treino"
+        android:hint="Nome do treino"
         android:textColor="@color/colorTextPrimary"
         android:textColorHint="@color/colorHint"
         android:padding="10dp"
