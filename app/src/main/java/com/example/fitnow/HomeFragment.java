@@ -29,6 +29,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -182,64 +183,66 @@ public class HomeFragment extends Fragment {
 
                     preloadFriendNames(friends);
                     startFriendPostListeners(friends);
-
-                    if (mostrarApenasMeus) {
-                        // SÓ MEUS POSTS
-                        db.collection("posts")
-                                .whereEqualTo("ownerUid", myUid)
-                                .orderBy("createdAt", Query.Direction.DESCENDING)
-                                .limit(20)
-                                .get()
-                                .addOnSuccessListener(querySnapshot -> {
-                                    List<Post> posts = new ArrayList<>();
-                                    for (DocumentSnapshot d : querySnapshot.getDocuments()) {
-                                        Post p = Post.from(d);
-                                        if (p != null) posts.add(p);
-                                    }
-                                    adapter.submitList(posts);
-                                });
-                    } else {
-                        // MEUS POSTS PRIMEIRO
-                        db.collection("posts")
-                                .whereEqualTo("ownerUid", myUid)
-                                .orderBy("createdAt", Query.Direction.DESCENDING)
-                                .limit(10)
-                                .get()
-                                .addOnSuccessListener(querySnapshot -> {
-                                    List<Post> allPosts = new ArrayList<>();
-                                    for (DocumentSnapshot d : querySnapshot.getDocuments()) {
-                                        Post p = Post.from(d);
-                                        if (p != null) allPosts.add(p);
-                                    }
-
-                                    // + POSTS DE AMIGOS (SÓ "friends")
-                                    for (String friendUid : friends) {
-                                        db.collection("posts")
-                                                .whereEqualTo("ownerUid", friendUid)
-                                                .whereEqualTo("visibility", "friends")
-                                                .orderBy("createdAt", Query.Direction.DESCENDING)
-                                                .limit(5)
-                                                .get()
-                                                .addOnSuccessListener(qs -> {
-                                                    for (DocumentSnapshot d : qs.getDocuments()) {
-                                                        Post p = Post.from(d);
-                                                        if (p != null) {
-                                                            allPosts.add(p);
-                                                        }
-                                                    }
-                                                    allPosts.sort((a, b) -> Long.compare(
-                                                            b.createdAt != null ? b.createdAt.toDate().getTime() : 0,
-                                                            a.createdAt != null ? a.createdAt.toDate().getTime() : 0
-                                                    ));
-                                                    adapter.submitList(new ArrayList<>(allPosts));
-                                                });
-                                    }
-                                });
+                    List<String> owners = new ArrayList<>();
+                    owners.add(myUid);
+                    if (!mostrarApenasMeus) {
+                        owners.addAll(friends);
                     }
+
+                    List<Task<QuerySnapshot>> chunkedQueries = new ArrayList<>();
+
+                    if (owners.isEmpty()) {
+                        adapter.submitList(Collections.emptyList());
+                        return;
+                    }
+
+                    List<List<String>> chunks = new ArrayList<>();
+                    for (int i = 0; i < owners.size(); i += 10) {
+                        int end = Math.min(i + 10, owners.size());
+                        chunks.add(owners.subList(i, end));
+                    }
+
+                    for (List<String> chunk : chunks) {
+                        chunkedQueries.add(
+                                db.collection("posts")
+                                        .whereIn("ownerUid", new ArrayList<>(chunk))
+                                        .orderBy("createdAt", Query.Direction.DESCENDING)
+                                        .get()
+                        );
+                    }
+
+                    Tasks.whenAllSuccess(chunkedQueries)
+                            .addOnSuccessListener(results -> {
+                                List<Post> posts = new ArrayList<>();
+
+                                for (Object result : results) {
+                                    if (!(result instanceof QuerySnapshot)) continue;
+                                    for (DocumentSnapshot d : ((QuerySnapshot) result).getDocuments()) {
+                                        Post p = Post.from(d);
+
+                                        if (p == null) continue;
+
+                                        if (mostrarApenasMeus && !myUid.equals(p.ownerUid)) continue;
+
+                                        boolean isFriendPost = friends.contains(p.ownerUid);
+                                        boolean isVisibleForFriend = "friends".equals(p.visibility) || "public".equals(p.visibility);
+                                        if (isFriendPost && !myUid.equals(p.ownerUid) && !isVisibleForFriend) continue;
+
+                                        posts.add(p);
+                                    }
+                                }
+
+                                posts.sort((a, b) -> Long.compare(
+                                        b.createdAt != null ? b.createdAt.toDate().getTime() : 0,
+                                        a.createdAt != null ? a.createdAt.toDate().getTime() : 0
+                                ));
+
+                                adapter.submitList(posts);
+                            });
                 });
     }
 
-    private void startFriendPostListeners(Set<String> allOwners) {
+                    private void startFriendPostListeners(Set<String> allOwners) {
         Set<String> friendUids = new HashSet<>(allOwners);
         friendUids.remove(myUid);
 

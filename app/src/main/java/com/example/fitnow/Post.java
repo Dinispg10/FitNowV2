@@ -15,6 +15,7 @@ public class Post {
     public Integer commentCount;
     public List<String> likedBy;
     public Timestamp createdAt;
+    public String visibility;
 
     public boolean isLikedBy(String uid) {
         return uid != null && likedBy != null && likedBy.contains(uid);
@@ -51,6 +52,8 @@ public class Post {
         }
 
         p.createdAt = d.getTimestamp("createdAt");
+        String vis = d.getString("visibility");
+        p.visibility = (vis == null || vis.isEmpty()) ? "friends" : vis;
         return p;
     }
 }

@@ -48,11 +48,6 @@
                 android:exported="false"
                 android:windowSoftInputMode="stateHidden|adjustResize" />
 
-        <!-- Alterar palavra-passe -->
-        <activity
-                android:name=".ChangePasswordActivity"
-                android:exported="false"
-                android:windowSoftInputMode="stateHidden|adjustResize" />
 
         <!-- NÃO registrar fragments como activity -->
         <!-- <activity android:name=".CriarTreinoFragment" /> -->
